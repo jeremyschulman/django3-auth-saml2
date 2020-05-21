@@ -12,7 +12,6 @@ from saml2.config import Config as Saml2Config
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.contrib.auth import login, get_user_model
-from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponseRedirect
 from django.utils.http import is_safe_url
@@ -22,8 +21,10 @@ from django.core.handlers.wsgi import WSGIRequest
 
 from rest_auth.utils import jwt_encode
 
+from . import consts
 
 # default User or custom User. Now both will work.
+
 User = get_user_model()
 
 
@@ -63,7 +64,7 @@ def _get_metadata():
 
 
 def _get_saml_client(domain):
-    acs_url = domain + reverse('django_saml2_auth:acs')
+    acs_url = domain + reverse(consts.VIEWNAME_SSO_ACS)
     metadata = _get_metadata()
 
     service_sp_data = {
@@ -97,10 +98,6 @@ def _get_saml_client(domain):
     saml_client = Saml2Client(config=sp_config)
 
     return saml_client
-
-
-def denied(req: WSGIRequest):
-    return render(req, 'django_saml2_auth/denied.html')
 
 
 def _create_new_user(user_name, email, first_name, last_name):
@@ -145,7 +142,7 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
     resp = req.POST.get('SAMLResponse', None)
     if not resp:
         return HttpResponseRedirect(
-            reverse('django_saml2_auth:denied')
+            reverse(consts.VIEWNAME_SSO_DENIED)
         )
 
     # Validate the SSO response and obtain the User identity information. If
@@ -158,13 +155,13 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
 
     if authn_response is None:
         return HttpResponseRedirect(
-            reverse('django_saml2_auth:denied')
+            reverse(consts.VIEWNAME_SSO_DENIED)
         )
 
     user_identity = authn_response.get_identity()
     if user_identity is None:
         return HttpResponseRedirect(
-            reverse('django_saml2_auth:denied')
+            reverse(consts.VIEWNAME_SSO_DENIED)
         )
 
     # SSO validation process is completed, so next step is to use the SSO
@@ -199,7 +196,7 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
     if not user_obj:
         if not settings.SAML2_AUTH.get('CREATE_USER', True):
             return HttpResponseRedirect(
-                reverse('django_saml2_auth:denied')
+                reverse(consts.VIEWNAME_SSO_DENIED)
             )
 
         user_obj = _create_new_user(**user_fields)
@@ -216,7 +213,7 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
 
     if not user_obj.is_active:
         return HttpResponseRedirect(
-            reverse('django_saml2_auth:denied')
+            reverse(consts.VIEWNAME_SSO_DENIED)
         )
 
     # -------------------------------------------------------------------------
@@ -257,7 +254,7 @@ def signin(req: WSGIRequest) -> HttpResponseRedirect:
     url_ok = is_safe_url(next_url, None)
     if not url_ok:
         return HttpResponseRedirect(
-            reverse('django_saml2_auth:denied')
+            reverse(consts.VIEWNAME_SSO_DENIED)
         )
 
     # Store the next URL to goto into the User session area so that the the SSO
