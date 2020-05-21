@@ -1,0 +1,2 @@
+include LICENSE README.md requirements.txt
+global-exclude *.pyc[co]
