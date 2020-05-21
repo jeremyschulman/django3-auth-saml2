@@ -124,7 +124,7 @@ def _create_new_user(user_name, email, first_name, last_name):
 
 
 @csrf_exempt
-def acs(req: WSGIRequest):
+def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
     """
     This endpoint is invoked by the SSO SAML system, for example Okta, when the User
     attempts to login via that SSO system.
