@@ -5,3 +5,4 @@ variables defined in the configuration.py file, as described here:
 
 https://netbox.readthedocs.io/en/stable/configuration/optional-settings/
 
+    'AUTHENTICATION_BACKEND': 'utilities.auth_backends.RemoteUserBackend',

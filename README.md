@@ -12,7 +12,7 @@ The updates are specific optimzations for:
 
 This package requires the xmlsec library to be installed.
     
-# Supported Options
+# Supported Configuration Options
 
 The options have been streamlined from the original django-sam2-auth package,
 only the following are supported:
@@ -33,16 +33,15 @@ By default the User name value will be taken from the SAML response
 `name_id.text` value.  For example, if the NAME_ID_FORMAT is set to use email,
 then the User name value will be the User's email address.
 
-
-Example for using Netbox
+You should create the `SAM2_AUTH_CONFIG` dictionary in the Django `settings.py` file,
+for example:
 
 ````python
-
-SAML2_AUTH = {
+SAML2_AUTH_CONFIG = {
     # Django authentication backend, must be a subclass of RemoteUserBackend
     
     # Using Netbox default remote backend
-    'AUTHENTICATION_BACKEND': 'utilities.auth_backends.RemoteUserBackend',
+    'AUTHENTICATION_BACKEND': 'django.contrib.auth.backends.RemoteUserBackend',
 
     # Metadata is required, choose either remote url or local file path
     'METADATA_LOCAL_FILE_PATH': '/etc/oktapreview-netbox-metadata.xml',
@@ -54,9 +53,14 @@ SAML2_AUTH = {
 
     # Use email as the User name
     'NAME_ID_FORMAT': "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-
 }
 ````
+
+# Using Netbox?
+
+If you are using [Netbox](https://netbox.readthedocs.io/en/stable/) and you do
+not want to fork/modify the system `settings.py` file, please refer to the
+[Netbox HOWTO](docs/netbox.md).
 
    
  
