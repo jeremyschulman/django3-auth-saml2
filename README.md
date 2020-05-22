@@ -8,43 +8,72 @@ The updates are specific optimzations for:
    * Provides only two views used for login and signon purposes
    * Uses Django RemoteUserBackend to handle User create & configuraiton
    
-# Supported Options
+# System Requirements
 
-In the Django `settings.py` file you must define the `SAML2_AUTH` configuraiton
-dictionary.  The options have been streamlined from the original
-django-sam2-auth package, only the following are supported:
+This package requires the xmlsec library to be installed.
+    
+# Supported Configuration Options
 
+The options have been streamlined from the original django-sam2-auth package,
+only the following are supported:
+
+**REQUIRED**
    * **AUTHENTICATION_BACKEND** - (NEW) the dotted string name of the backend
+   
+   One of:   
    * **METADATA_LOCAL_FILE_PATH** - same
    * **METADATA_AUTO_CONF_URL** - same
+   
+*OPTIONAL*      
    * **ENTITY_ID** - same
    * **ASSERTION_URL** - same
    * **NAME_ID_FORMAT** - same
 
-By default the User name value will be taken from the SAML response name_id.text value.
+By default the User name value will be taken from the SAML response
+`name_id.text` value.  For example, if the NAME_ID_FORMAT is set to use email,
+then the User name value will be the User's email address.
 
-Example for using Netbox
+You should create the `SAM2_AUTH_CONFIG` dictionary in the Django `settings.py` file,
+for example:
 
 ````python
-
-SAML2_AUTH = {
+SAML2_AUTH_CONFIG = {
     # Django authentication backend, must be a subclass of RemoteUserBackend
-    # REQUIRED
     
     # Using Netbox default remote backend
-    'AUTHENTICATION_BACKEND': 'utilities.auth_backends.RemoteUserBackend',
+    'AUTHENTICATION_BACKEND': 'django.contrib.auth.backends.RemoteUserBackend',
 
     # Metadata is required, choose either remote url or local file path
     'METADATA_LOCAL_FILE_PATH': '/etc/oktapreview-netbox-metadata.xml',
 
     # Setting in Okta Admin for this App
 
-    'ENTITY_ID': 'https://okta-devtest.ngrok.io',
-    'ASSERTION_URL': 'https://okta-devtest.ngrok.io',
+    # Use email as the User name
     'NAME_ID_FORMAT': "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-
 }
 ````
 
+# Setting up URLs
+
+In your ROOT_URLCONF.urlpatterns you will need to define to URLs.  The first is
+for the SSO system, and the second is your login URL that will force the User
+to authenticate via the SSO first.  You can change these to suit your specific
+app API.  Keep in mind that the 'django3_okta_saml2.urls' provides the 'acs'
+view, so that the example below would result in the app API "sso/acs/".
+
+```python
+import django3_okta_saml2.views
+
+urlpatterns = [
+    path('sso/', include('django3_okta_saml2.urls')),
+    path('login/', django3_okta_saml2.views.signin, name='login'),
+]
+```
+
+# Using Netbox?
+
+If you are using [Netbox](https://netbox.readthedocs.io/en/stable/) and you do
+not want to fork/modify the system `settings.py` file, please refer to
+[netbox-plugin-auth-saml2](https://github.com/jeremyschulman/netbox-plugin-auth-saml2)
+
    
- 
