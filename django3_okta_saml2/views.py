@@ -10,20 +10,17 @@ from saml2.client import Saml2Client
 from saml2.config import Config as Saml2Config
 
 from django.conf import settings
-from django.contrib.auth.models import Group
-from django.contrib.auth import login, get_user_model
-from django.shortcuts import render
+from django.contrib.auth import login, get_user_model, load_backend
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponseRedirect
 from django.utils.http import is_safe_url
 from django.urls import reverse
-from django.utils.module_loading import import_string
 from django.core.handlers.wsgi import WSGIRequest
 
-from rest_auth.utils import jwt_encode
+
+from . import consts
 
 
-# default User or custom User. Now both will work.
 User = get_user_model()
 
 
@@ -32,7 +29,7 @@ def _default_next_url():
         return settings.SAML2_AUTH['DEFAULT_NEXT_URL']
 
     # Lazily evaluate this in case we don't have admin loaded.
-    return reverse('admin:index')
+    return reverse('home')
 
 
 def get_current_domain(req: WSGIRequest) -> str:
@@ -63,7 +60,7 @@ def _get_metadata():
 
 
 def _get_saml_client(domain):
-    acs_url = domain + reverse('django_saml2_auth:acs')
+    acs_url = domain + reverse(consts.VIEWNAME_SSO_ACS)
     metadata = _get_metadata()
 
     service_sp_data = {
@@ -99,42 +96,13 @@ def _get_saml_client(domain):
     return saml_client
 
 
-def denied(req: WSGIRequest):
-    return render(req, 'django_saml2_auth/denied.html')
-
-
-def _create_new_user(user_name, email, first_name, last_name):
-    user = User.objects.create_user(user_name, email)
-    user.first_name = first_name
-    user.last_name = last_name
-
-    new_user_profile = settings.SAML2_AUTH.get('NEW_USER_PROFILE', {})
-
-    groups = [Group.objects.get(name=group_name)
-              for group_name in new_user_profile.get('USER_GROUPS', [])]
-
-    user.groups.set(groups)
-
-    user.is_active = new_user_profile.get('ACTIVE_STATUS', True)
-    user.is_staff = new_user_profile.get('STAFF_STATUS', True)
-    user.is_superuser = new_user_profile.get('SUPERUSER_STATUS', False)
-    user.save()
-
-    return user
-
-
 @csrf_exempt
 def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
     """
     This endpoint is invoked by the SSO SAML system, for example Okta, when the User
     attempts to login via that SSO system.
     """
-
-    if not req.session.session_key:
-        session_key = req.POST.get('RelayState')
-        req.session = req.session.__class__(session_key)
-
-    next_url = req.session.get('login_next_url', _default_next_url())
+    next_url = req.POST.get('RelayState') or _default_next_url()
 
     # obtain the results of the SSO signin process, and if there is no
     # 'SAMLResponse' found in the POST parameters, then it means that the User
@@ -145,7 +113,7 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
     resp = req.POST.get('SAMLResponse', None)
     if not resp:
         return HttpResponseRedirect(
-            reverse('django_saml2_auth:denied')
+            reverse(consts.VIEWNAME_SSO_DENIED)
         )
 
     # Validate the SSO response and obtain the User identity information. If
@@ -158,13 +126,13 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
 
     if authn_response is None:
         return HttpResponseRedirect(
-            reverse('django_saml2_auth:denied')
+            reverse(consts.VIEWNAME_SSO_DENIED)
         )
 
     user_identity = authn_response.get_identity()
     if user_identity is None:
         return HttpResponseRedirect(
-            reverse('django_saml2_auth:denied')
+            reverse(consts.VIEWNAME_SSO_DENIED)
         )
 
     # SSO validation process is completed, so next step is to use the SSO
@@ -174,70 +142,36 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
 
     user_fields = dict()
 
+    user_name = authn_response.name_id.text
+
     if authn_response.name_id.format == NAMEID_FORMAT_EMAILADDRESS:
-        email = authn_response.name_id.text
-        user_fields['email'] = email
+        user_fields['email'] = user_name
         user_fields['first_name'] = 'Jeremy'
         user_fields['last_name'] = 'Schulman'
-        user_fields['user_name'] = user_fields['email']
 
-    # attr_map = settings.SAML2_AUTH.get('ATTRIBUTES_MAP')
-    # attr_vals = {}
-    # if attr_map:
-    #
-    #     user_email = user_identity.get(attr_map.get('email', 'Email'))
-    # user_name = user_identity[attr_map.get('username', 'UserName')][0]
-    # user_first_name = user_identity[attr_map.get('first_name', 'FirstName')][0]
-    # user_last_name = user_identity[attr_map.get('last_name', 'LastName')][0]
+    user_fields['user_name'] = user_name
 
-    try:
-        user_obj = User.objects.get(username=user_fields['user_name'])
+    backend_name = settings.SAML2_AUTH['AUTHENTICATION_BACKEND']
+    backend_obj = load_backend(backend_name)
 
-    except User.DoesNotExist:
-        user_obj = None
+    # this will call the configure_user method if it exists; the backend is
+    # responsible for implementing the necessary configuration options.
+
+    user_obj = backend_obj.authenticate(req, user_name)
 
     if not user_obj:
-        if not settings.SAML2_AUTH.get('CREATE_USER', True):
-            return HttpResponseRedirect(
-                reverse('django_saml2_auth:denied')
-            )
-
-        user_obj = _create_new_user(**user_fields)
-
-        # If the app configured a trigger function to call after a new user is
-        # created then execute that function now.
-        # TODO: add a return code to indicate to proceed or abort/deny
-
-        hook_create_user = settings.SAML2_AUTH.get('TRIGGER', {}).get('CREATE_USER', None)
-        if hook_create_user:
-            import_string(hook_create_user)(user_identity)
-
-    req.session.flush()
-
-    if not user_obj.is_active:
         return HttpResponseRedirect(
-            reverse('django_saml2_auth:denied')
+            reverse(consts.VIEWNAME_SSO_DENIED)
         )
 
     # -------------------------------------------------------------------------
     # !!!                         Login User                               !!!!
     # -------------------------------------------------------------------------
 
-    user_obj.backend = 'django.contrib.auth.backends.ModelBackend'
+    user_obj.backend = backend_name
     login(req, user_obj)
 
-    if not settings.SAML2_AUTH.get('USE_JWT'):
-        return HttpResponseRedirect(next_url)
-
-    # We use JWT auth send token to frontend
-
-    jwt_token = jwt_encode(user_obj)
-    query = '?uid={}&token={}'.format(user_obj.id, jwt_token)
-
-    frontend_url = settings.SAML2_AUTH.get(
-        'FRONTEND_URL', next_url)
-
-    return HttpResponseRedirect(frontend_url+query)
+    return HttpResponseRedirect(next_url)
 
 
 def signin(req: WSGIRequest) -> HttpResponseRedirect:
@@ -257,29 +191,18 @@ def signin(req: WSGIRequest) -> HttpResponseRedirect:
     url_ok = is_safe_url(next_url, None)
     if not url_ok:
         return HttpResponseRedirect(
-            reverse('django_saml2_auth:denied')
+            reverse(consts.VIEWNAME_SSO_DENIED)
         )
 
-    # Store the next URL to goto into the User session area so that the the SSO
-    # route ('acs') can use it once the User has completed the SSO process.
-
-    req.session['login_next_url'] = next_url
-    session_id = req.session.session_key
-
     # Next we need to obtain the SSO system URL to direct the User's browser to
-    # that system so that they can perform the login.
+    # that system so that they can perform the login.  We use the RelayState
+    # URL parameter to pass the 'next-url' value back to the sso handler.
 
     saml_client = _get_saml_client(get_current_domain(req))
     req_id, info = saml_client.prepare_for_authenticate()
 
     redirect_url = dict(info['headers'])['Location']
-
-    # We need to pass the Django session key as the Okta RelayState
-    # so that we can recover the session data later.  Alternatively we could
-    # simply pass the login_next_url value and avoid sessions altogether.
-    # TODO.
-
-    redirect_url += f"&RelayState={session_id}"
+    redirect_url += f"&RelayState={next_url}"
 
     # This causes the web client to go to the SSO SAML system to force the use
     # to use that system to authenticate.
