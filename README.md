@@ -59,8 +59,7 @@ SAML2_AUTH_CONFIG = {
 # Using Netbox?
 
 If you are using [Netbox](https://netbox.readthedocs.io/en/stable/) and you do
-not want to fork/modify the system `settings.py` file, please refer to the
-[Netbox HOWTO](docs/netbox.md).
+not want to fork/modify the system `settings.py` file, please refer to
+[netbox-plugin-auth-saml2](https://github.com/jeremyschulman/netbox-plugin-auth-saml2)
 
    
- 
