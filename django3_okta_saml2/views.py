@@ -29,7 +29,7 @@ def _default_next_url():
         return settings.SAML2_AUTH['DEFAULT_NEXT_URL']
 
     # Lazily evaluate this in case we don't have admin loaded.
-    return reverse('admin:index')
+    return reverse('home')
 
 
 def get_current_domain(req: WSGIRequest) -> str:
