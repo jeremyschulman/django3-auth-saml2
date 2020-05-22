@@ -9,7 +9,6 @@ from saml2 import (
 from saml2.client import Saml2Client
 from saml2.config import Config as Saml2Config
 
-from django.conf import settings
 from django.contrib.auth import login, get_user_model, load_backend
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponseRedirect
@@ -19,14 +18,14 @@ from django.core.handlers.wsgi import WSGIRequest
 
 
 from . import consts
-
+from . config import SAML2_AUTH_CONFIG
 
 User = get_user_model()
 
 
 def _default_next_url():
-    if 'DEFAULT_NEXT_URL' in settings.SAML2_AUTH:
-        return settings.SAML2_AUTH['DEFAULT_NEXT_URL']
+    if 'DEFAULT_NEXT_URL' in SAML2_AUTH_CONFIG:
+        return SAML2_AUTH_CONFIG['DEFAULT_NEXT_URL']
 
     # Lazily evaluate this in case we don't have admin loaded.
     return reverse('home')
@@ -34,8 +33,8 @@ def _default_next_url():
 
 def get_current_domain(req: WSGIRequest) -> str:
 
-    if 'ASSERTION_URL' in settings.SAML2_AUTH:
-        return settings.SAML2_AUTH['ASSERTION_URL']
+    if 'ASSERTION_URL' in SAML2_AUTH_CONFIG:
+        return SAML2_AUTH_CONFIG['ASSERTION_URL']
 
     return '{scheme}://{host}'.format(
         scheme='https' if req.is_secure() else 'http',
@@ -45,15 +44,15 @@ def get_current_domain(req: WSGIRequest) -> str:
 
 def _get_metadata():
 
-    if 'METADATA_LOCAL_FILE_PATH' in settings.SAML2_AUTH:
+    if 'METADATA_LOCAL_FILE_PATH' in SAML2_AUTH_CONFIG:
         return {
-            'local': [settings.SAML2_AUTH['METADATA_LOCAL_FILE_PATH']]
+            'local': [SAML2_AUTH_CONFIG['METADATA_LOCAL_FILE_PATH']]
         }
 
     return {
         'remote': [
             {
-                "url": settings.SAML2_AUTH['METADATA_AUTO_CONF_URL']
+                "url": SAML2_AUTH_CONFIG['METADATA_AUTO_CONF_URL']
             }
         ]
     }
@@ -82,11 +81,11 @@ def _get_saml_client(domain):
         'service': {'sp': service_sp_data},
     }
 
-    if 'ENTITY_ID' in settings.SAML2_AUTH:
-        saml_settings['entityid'] = settings.SAML2_AUTH['ENTITY_ID']
+    if 'ENTITY_ID' in SAML2_AUTH_CONFIG:
+        saml_settings['entityid'] = SAML2_AUTH_CONFIG['ENTITY_ID']
 
-    if 'NAME_ID_FORMAT' in settings.SAML2_AUTH:
-        service_sp_data["name_id_format"] = settings.SAML2_AUTH['NAME_ID_FORMAT']
+    if 'NAME_ID_FORMAT' in SAML2_AUTH_CONFIG:
+        service_sp_data["name_id_format"] = SAML2_AUTH_CONFIG['NAME_ID_FORMAT']
 
     sp_config = Saml2Config()
     sp_config.load(saml_settings)
@@ -151,7 +150,7 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
 
     user_fields['user_name'] = user_name
 
-    backend_name = settings.SAML2_AUTH['AUTHENTICATION_BACKEND']
+    backend_name = SAML2_AUTH_CONFIG['AUTHENTICATION_BACKEND']
     backend_obj = load_backend(backend_name)
 
     # this will call the configure_user method if it exists; the backend is
