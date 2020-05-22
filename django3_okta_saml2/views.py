@@ -22,7 +22,6 @@ from django.core.handlers.wsgi import WSGIRequest
 
 from . import consts
 
-# default User or custom User. Now both will work.
 
 User = get_user_model()
 
@@ -125,12 +124,7 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
     This endpoint is invoked by the SSO SAML system, for example Okta, when the User
     attempts to login via that SSO system.
     """
-
-    if not req.session.session_key:
-        session_key = req.POST.get('RelayState')
-        req.session = req.session.__class__(session_key)
-
-    next_url = req.session.get('login_next_url', _default_next_url())
+    next_url = req.POST.get('RelayState') or _default_next_url()
 
     # obtain the results of the SSO signin process, and if there is no
     # 'SAMLResponse' found in the POST parameters, then it means that the User
@@ -208,8 +202,6 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
         if hook_create_user:
             import_string(hook_create_user)(user_identity)
 
-    req.session.flush()
-
     if not user_obj.is_active:
         return HttpResponseRedirect(
             reverse(consts.VIEWNAME_SSO_DENIED)
@@ -221,7 +213,6 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
 
     user_obj.backend = 'django.contrib.auth.backends.ModelBackend'
     login(req, user_obj)
-
     return HttpResponseRedirect(next_url)
 
 
@@ -245,26 +236,15 @@ def signin(req: WSGIRequest) -> HttpResponseRedirect:
             reverse(consts.VIEWNAME_SSO_DENIED)
         )
 
-    # Store the next URL to goto into the User session area so that the the SSO
-    # route ('acs') can use it once the User has completed the SSO process.
-
-    req.session['login_next_url'] = next_url
-    session_id = req.session.session_key
-
     # Next we need to obtain the SSO system URL to direct the User's browser to
-    # that system so that they can perform the login.
+    # that system so that they can perform the login.  We use the RelayState
+    # URL parameter to pass the 'next-url' value back to the sso handler.
 
     saml_client = _get_saml_client(get_current_domain(req))
     req_id, info = saml_client.prepare_for_authenticate()
 
     redirect_url = dict(info['headers'])['Location']
-
-    # We need to pass the Django session key as the Okta RelayState
-    # so that we can recover the session data later.  Alternatively we could
-    # simply pass the login_next_url value and avoid sessions altogether.
-    # TODO.
-
-    redirect_url += f"&RelayState={session_id}"
+    redirect_url += f"&RelayState={next_url}"
 
     # This causes the web client to go to the SSO SAML system to force the use
     # to use that system to authenticate.
