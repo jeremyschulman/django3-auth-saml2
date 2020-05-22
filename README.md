@@ -48,13 +48,27 @@ SAML2_AUTH_CONFIG = {
 
     # Setting in Okta Admin for this App
 
-    'ENTITY_ID': 'https://okta-devtest.ngrok.io',
-    'ASSERTION_URL': 'https://okta-devtest.ngrok.io',
-
     # Use email as the User name
     'NAME_ID_FORMAT': "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
 }
 ````
+
+# Setting up URLs
+
+In your ROOT_URLCONF.urlpatterns you will need to define to URLs.  The first is
+for the SSO system, and the second is your login URL that will force the User
+to authenticate via the SSO first.  You can change these to suit your specific
+app API.  Keep in mind that the 'django3_okta_saml2.urls' provides the 'acs'
+view, so that the example below would result in the app API "sso/acs/".
+
+```python
+import django3_okta_saml2.views
+
+urlpatterns = [
+    path('sso/', include('django3_okta_saml2.urls')),
+    path('login/', django3_okta_saml2.views.signin, name='login'),
+]
+```
 
 # Using Netbox?
 
