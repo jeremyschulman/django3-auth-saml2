@@ -19,7 +19,6 @@ from django.urls import reverse
 from django.utils.module_loading import import_string
 from django.core.handlers.wsgi import WSGIRequest
 
-from rest_auth.utils import jwt_encode
 
 from . import consts
 
@@ -223,18 +222,7 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
     user_obj.backend = 'django.contrib.auth.backends.ModelBackend'
     login(req, user_obj)
 
-    if not settings.SAML2_AUTH.get('USE_JWT'):
-        return HttpResponseRedirect(next_url)
-
-    # We use JWT auth send token to frontend
-
-    jwt_token = jwt_encode(user_obj)
-    query = '?uid={}&token={}'.format(user_obj.id, jwt_token)
-
-    frontend_url = settings.SAML2_AUTH.get(
-        'FRONTEND_URL', next_url)
-
-    return HttpResponseRedirect(frontend_url+query)
+    return HttpResponseRedirect(next_url)
 
 
 def signin(req: WSGIRequest) -> HttpResponseRedirect:
