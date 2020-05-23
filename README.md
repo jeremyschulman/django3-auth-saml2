@@ -130,10 +130,11 @@ does not exist by defaul; see class property `create_unknown_user`.  In this
 case the `RemoteUserBackend.configure_user()` method is called.  
 
 You can subclass RemoteUserBackend, implemeting your own `authenticate()` and
-`configure_user()` methods to use the response.META['SAML2_AUTH_RESPONSE'] data. 
+`configure_user()` methods to use the `response.META['SAML2_AUTH_RESPONSE']` data. 
 You can to access the SAML2 user identiy attributes:
 
 ```python
+saml2_uath_resp = response.META['SAML2_AUTH_RESPONSE']
 user_identity = saml2_auth_resp.get_identity()
 ```
 
