@@ -15,9 +15,9 @@ Changes provided in `django3_auth_saml2`:
 
    1. Django3 / Python3 code base
    1. Provides two Views: one for the login redirect to the SSO and the other for the SSO signin
-   1. Errors result PermissionDenied exceptions for handling by the Django app
    1. Uses Django RemoteUserBackend (or subclass) to handle User creation and configuration process
    1. Provide the SAML2 authenticate response payload in `response.META['SAML2_AUTH_RESPONSE']`
+   1. Any errors result in `PermissionDenied` exceptions to allow for app specific handling
 
 ## System Requirements
 
@@ -94,15 +94,15 @@ urlpatterns = [
 
 ## RemoteUserBackend
 
-The `acs` View will set the `response.META['SAML2_AUTH_RESPONSE']` to the
-`saml2.response.AuthnResponse` instance so that you can access this
-information.
-
 By default `acs` will define the `remote_user` parameter from the
 `saml2_auth_resp.name_id.text` value when it calls the backend `authenticate()`
 method.  For example, if the SSO system (Okta) has configured the name ID
 format as email (as shown in the example above), then the User name will be the
 Users email address.
+
+The `acs` View will set the `response.META['SAML2_AUTH_RESPONSE']` to the
+`saml2.response.AuthnResponse` instance so that you can access this
+information.
 
 When `acs` calls the backend `authenticate()`, the User will be created if it
 does not exist by defaul; see class property `create_unknown_user`.  In this
@@ -113,7 +113,7 @@ You can subclass RemoteUserBackend, implemeting your own `authenticate()` and
 You can to access the SAML2 user identiy attributes:
 
 ```python
-  user_identity = saml2_auth_resp.get_identity()
+user_identity = saml2_auth_resp.get_identity()
 ```
 
 The `user_identity` return value is a dictionary of the key-value pairs
