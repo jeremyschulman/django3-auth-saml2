@@ -100,7 +100,7 @@ For more information on these terms, refer to [docs](https://support.okta.com/he
 
 ### Example
 
-You should create the `SAM2_AUTH_CONFIG` dictionary in the Django `settings.py` file,
+You should create the `SAML2_AUTH_CONFIG` dictionary in the Django `settings.py` file,
 for example:
 
 ````python
