@@ -1,11 +1,12 @@
-# Django3 auth SAML2 integration
+# Django3 Auth SAML2 Integration
 
-As a developer of Django3 applications I need to integrate Single-Sign-On (SSO)
-User authentication using SAML2,for example with Okta.  I know there are a
-number of existing packages out there, but I want something super-simple that
-does not require a lot of configuration in my `settings.py` file.  I also need
-this integration to work with exsitng Django solutions that _do not allow me to
-modify settings.py directly_, as is the case with
+As a developer of Django3 applications I need to integrate a SAML2 based
+Single-Sign-On (SSO) User authentication system, for example with
+[Okta](https://www.okta.com/).  I know there are a number of existing packages
+out there, but I want something super-simple that does not require a lot of
+configuration in my `settings.py` file.  I also need this integration to work
+with exsitng Django solutions that _do not allow me to modify settings.py
+directly_, as is the case with
 [Netbox](https://github.com/netbox-community/netbox).
 
 This `django3_auth_saml2` package was inspired by the existing
