@@ -12,13 +12,15 @@ directly_, as is the case with
 This `django3_auth_saml2` package was inspired by the existing
 [django-saml2-auth](https://github.com/fangli/django-saml2-auth).  
 
-Changes provided in `django3_auth_saml2`:
+**Notable Changes**:
 
    1. Django3 / Python3 code base
    1. Provides two Views: one for the login redirect to the SSO and the other for the SSO signin
    1. Uses Django RemoteUserBackend (or subclass) to handle User creation and configuration process
    1. Provide the SAML2 authenticate response payload in `response.META['SAML2_AUTH_RESPONSE']`
    1. Any errors result in `PermissionDenied` exceptions to allow for app specific handling
+   1. Configuration can be store in `django3_auth_saml2.config.SAML2_AUTH_CONFIG` as an alternative
+   to using the Django `settings.py` file
 
 ## System Requirements
 
@@ -28,13 +30,29 @@ This package requires the `xmlsec` library to be installed.
 
 This package provides two views:
 
-   * `acs` - This URL View should be called by the SSO system (Okta)
    * `login` - The URL View should be called when the User attempts to login directly to the app
+   * `acs` - This URL View should be called by the SSO system (Okta)
   
-When the User attempts to use  `login`, the View will redirect the User's web
+When the User attempts to use `login`, the View will redirect the User's web
 browser to the SSO system for authentication.  Once the User authenticates at
 the SSO system, the SSO system will then call the `acs` URL view to sign into
 the Django app.
+
+In your ROOT_URLCONF.urlpatterns you will need to define two URLs.  The first
+is for the SSO system, and the second is your login URL that will force the
+User to authenticate via the SSO first.  You can change these to suit your
+specific app API.
+
+Keep in mind that the 'django3_auth_saml2.urls' provides the 'acs' view, so
+that the example below would result in the app API "/sso/acs/" and "/sso/login/".
+
+```python
+
+urlpatterns = [
+    path('sso/', include('django3_auth_saml2.urls')),
+    path('login/', RedirectView.as_view(url='/sso/login/')),
+]
+```
 
 ## Django System Configuration
 
@@ -42,16 +60,23 @@ The options have been streamlined from the original django-sam2-auth package,
 only the following are supported:
 
 **REQUIRED**
-   * **AUTHENTICATION_BACKEND** - (NEW) the dotted string name of the backend
+**AUTHENTICATION_BACKEND**<br/>
+(NEW) the dotted string name of the backend, for example:<br/>
+"django.contrib.auth.backends.RemoteUserBackend"
    
-   One of:   
-   * **METADATA_LOCAL_FILE_PATH** - same
-   * **METADATA_AUTO_CONF_URL** - same
+One of:   
+
+A) **METADATA_AUTO_CONF_URL**<br/>
+The URL to the SSO system where the metadata document can be retrieved, for example:<br/>
+"https://mycorp.oktapreview.com/app/sadjfalkdsflkads/sso/saml/metadata"
+
+B) **METADATA_LOCAL_FILE_PATH** - The filepath to the SSO system
+ 
    
 *OPTIONAL*      
    * **ENTITY_ID** - same
    * **ASSERTION_URL** - same
-   * **NAME_ID_FORMAT** - same
+   * **NAME_ID_FORMAT** - Identifies the format of the User name, see [docs](https://docs.oracle.com/cd/E19316-01/820-3886/ggwbz/index.html) for options.
 
 By default the User name value will be taken from the SAML response
 `name_id.text` value.  For example, if the NAME_ID_FORMAT is set to use email,
@@ -77,23 +102,7 @@ SAML2_AUTH_CONFIG = {
 }
 ````
 
-# Setting up URLs
-
-In your ROOT_URLCONF.urlpatterns you will need to define to URLs.  The first is
-for the SSO system, and the second is your login URL that will force the User
-to authenticate via the SSO first.  You can change these to suit your specific
-app API.  Keep in mind that the 'django3_okta_saml2.urls' provides the 'acs'
-view, so that the example below would result in the app API "sso/acs/".
-
-```python
-
-urlpatterns = [
-    path('sso/', include('django3_auth_saml2.urls')),
-    path('login/', RedirectView.as_view(url='/sso/login/')),
-]
-```
-
-## RemoteUserBackend
+## User Create & Configuration via RemoteUserBackend
 
 By default `acs` will define the `remote_user` parameter from the
 `saml2_auth_resp.name_id.text` value when it calls the backend `authenticate()`
@@ -119,7 +128,6 @@ user_identity = saml2_auth_resp.get_identity()
 
 The `user_identity` return value is a dictionary of the key-value pairs
 as assigned in the SSO system.
-
 
 # Using Netbox?
 
