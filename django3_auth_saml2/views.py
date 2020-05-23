@@ -62,15 +62,16 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
     # attempted to access the Django app without first going through the SSO
     # system.
 
-    saml_client = _get_saml_client(req)
-    resp = req.POST.get('SAMLResponse', None)
-    if not resp:
-        raise PermissionDenied("SAML2: missing response")
-
-    # Validate the SSO response and obtain the User identity information. If
-    # any part of this process fails, then redirect to a denied page.
-
     try:
+
+        saml_client = _get_saml_client(req)
+        resp = req.POST.get('SAMLResponse', None)
+        if not resp:
+            raise PermissionDenied("SAML2: missing response")
+
+        # Validate the SSO response and obtain the User identity information.
+        # If any part of this process fails, then redirect to a denied page.
+
         authn_response = saml_client.parse_authn_request_response(
             resp,
             entity.BINDING_HTTP_POST
@@ -149,7 +150,6 @@ def signin(req: WSGIRequest) -> HttpResponseRedirect:
 #
 # -----------------------------------------------------------------------------
 
-@lru_cache()
 def _default_next_url():
     if 'DEFAULT_NEXT_URL' in SAML2_AUTH_CONFIG:
         return SAML2_AUTH_CONFIG['DEFAULT_NEXT_URL']
@@ -157,7 +157,6 @@ def _default_next_url():
     return consts.DEFAULT_NEXT_URL
 
 
-@lru_cache()
 def get_current_domain(req: WSGIRequest) -> str:
     if 'ASSERTION_URL' in SAML2_AUTH_CONFIG:
         return SAML2_AUTH_CONFIG['ASSERTION_URL']
@@ -215,6 +214,8 @@ def _get_saml_client_config(domain):
     sp_config = Saml2Config()
     sp_config.load(saml_settings)
     sp_config.allow_unknown_attributes = True
+
+    return sp_config
 
 
 def _get_saml_client(req):
