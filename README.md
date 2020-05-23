@@ -12,6 +12,18 @@ The updates are specific optimzations for:
 
 This package requires the xmlsec library to be installed.
     
+# Provided Views
+
+This package provides two views:
+
+   * `acs` - This URL View should be called by the SSO system (Okta)
+   * `login` - The URL View should be called when the User attempts to login directly to the app
+  
+When the User attempts to use  `login`, the View will redirect the User's web
+browser to the SSO system for authentication.  Once the User authenticates at
+the SSO system, the SSO system will then call the `acs` URL view to sign into
+the Django app.
+
 # Supported Configuration Options
 
 The options have been streamlined from the original django-sam2-auth package,
@@ -62,11 +74,10 @@ app API.  Keep in mind that the 'django3_okta_saml2.urls' provides the 'acs'
 view, so that the example below would result in the app API "sso/acs/".
 
 ```python
-import django3_okta_saml2.views
 
 urlpatterns = [
     path('sso/', include('django3_okta_saml2.urls')),
-    path('login/', django3_okta_saml2.views.signin, name='login'),
+    path('login/', RedirectView.as_view(url='/sso/login/')),
 ]
 ```
 

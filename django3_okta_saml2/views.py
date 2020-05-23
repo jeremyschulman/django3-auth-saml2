@@ -16,7 +16,6 @@ from django.utils.http import is_safe_url
 from django.urls import reverse
 from django.core.handlers.wsgi import WSGIRequest
 
-
 from . import consts
 from . config import SAML2_AUTH_CONFIG
 
@@ -27,8 +26,7 @@ def _default_next_url():
     if 'DEFAULT_NEXT_URL' in SAML2_AUTH_CONFIG:
         return SAML2_AUTH_CONFIG['DEFAULT_NEXT_URL']
 
-    # Lazily evaluate this in case we don't have admin loaded.
-    return reverse('home')
+    return consts.DEFAULT_NEXT_URL
 
 
 def get_current_domain(req: WSGIRequest) -> str:
