@@ -1,18 +1,26 @@
-# Okta SAML2 integration for Django3 Apps
+# Django3 auth SAML2 integration
 
-This package is derviced from [django-saml2-auth](https://github.com/fangli/django-saml2-auth).
-The updates are specific optimzations for:
+As a developer of Django3 applications I need to integrate Single-Sign-On (SSO)
+User authentication using SAML2,for example with Okta.  I know there are a
+number of existing packages out there, but I want something super-simple that
+does not require a lot of configuration in my `settings.py` file.  I also need
+this integration to work with exsitng Django solutions that _do not allow me to
+modify settings.py directly_, as is the case with
+[Netbox](https://github.com/netbox-community/netbox).
 
-   * Django3 framework
-   * SAML 2.0
-   * Provides only two views used for login and signon purposes
-   * Uses Django RemoteUserBackend to handle User create & configuraiton
-   
+This `django3_auth_saml2` package was inspired by the existing
+[django-saml2-auth](https://github.com/fangli/django-saml2-auth).  The following relevatn changes:
+
+   1. Django3 / Python3 code base
+   1. Provides two Views: one for the login redirect to the SSO and the other for the SSO signin
+   1. Errors result PermissionDenied exceptions for handling by the Django app
+   1. Uses Django Auth Backend system to handle User creation and configuration process
+
 # System Requirements
 
-This package requires the xmlsec library to be installed.
+This package requires the `xmlsec` library to be installed.
     
-# Provided Views
+# Views
 
 This package provides two views:
 
