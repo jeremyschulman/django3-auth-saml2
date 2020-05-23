@@ -9,18 +9,21 @@ modify settings.py directly_, as is the case with
 [Netbox](https://github.com/netbox-community/netbox).
 
 This `django3_auth_saml2` package was inspired by the existing
-[django-saml2-auth](https://github.com/fangli/django-saml2-auth).  The following relevatn changes:
+[django-saml2-auth](https://github.com/fangli/django-saml2-auth).  
+
+Changes provided in `django3_auth_saml2`:
 
    1. Django3 / Python3 code base
    1. Provides two Views: one for the login redirect to the SSO and the other for the SSO signin
    1. Errors result PermissionDenied exceptions for handling by the Django app
-   1. Uses Django Auth Backend system to handle User creation and configuration process
+   1. Uses Django RemoteUserBackend (or subclass) to handle User creation and configuration process
+   1. Provide the SAML2 authenticate response payload in `response.META['SAML2_AUTH_RESPONSE']`
 
-# System Requirements
+## System Requirements
 
 This package requires the `xmlsec` library to be installed.
     
-# Views
+## Views
 
 This package provides two views:
 
@@ -32,7 +35,7 @@ browser to the SSO system for authentication.  Once the User authenticates at
 the SSO system, the SSO system will then call the `acs` URL view to sign into
 the Django app.
 
-# Supported Configuration Options
+## Django System Configuration
 
 The options have been streamlined from the original django-sam2-auth package,
 only the following are supported:
@@ -84,10 +87,38 @@ view, so that the example below would result in the app API "sso/acs/".
 ```python
 
 urlpatterns = [
-    path('sso/', include('django3_okta_saml2.urls')),
+    path('sso/', include('django3_auth_saml2.urls')),
     path('login/', RedirectView.as_view(url='/sso/login/')),
 ]
 ```
+
+## RemoteUserBackend
+
+The `acs` View will set the `response.META['SAML2_AUTH_RESPONSE']` to the
+`saml2.response.AuthnResponse` instance so that you can access this
+information.
+
+By default `acs` will define the `remote_user` parameter from the
+`saml2_auth_resp.name_id.text` value when it calls the backend `authenticate()`
+method.  For example, if the SSO system (Okta) has configured the name ID
+format as email (as shown in the example above), then the User name will be the
+Users email address.
+
+When `acs` calls the backend `authenticate()`, the User will be created if it
+does not exist by defaul; see class property `create_unknown_user`.  In this
+case the `RemoteUserBackend.configure_user()` method is called.  
+
+You can subclass RemoteUserBackend, implemeting your own `authenticate()` and
+`configure_user()` methods to use the response.META['SAML2_AUTH_RESPONSE'] data. 
+You can to access the SAML2 user identiy attributes:
+
+```python
+  user_identity = saml2_auth_resp.get_identity()
+```
+
+The `user_identity` return value is a dictionary of the key-value pairs
+as assigned in the SSO system.
+
 
 # Using Netbox?
 

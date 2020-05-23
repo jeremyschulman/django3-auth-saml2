@@ -87,10 +87,6 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
         if authn_response is None:
             raise PermissionDenied("SAML2: failed to parse response")
 
-        user_identity = authn_response.get_identity()
-        if user_identity is None:
-            raise PermissionDenied("SAML2: no identity")
-
     except SAMLError as exc:
         raise PermissionDenied(f"SAML2 error: {str(exc)}")
 
@@ -107,6 +103,7 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
     # exists; the backend is responsible for implementing the necessary
     # configuration options.
 
+    req.META['SAML2_AUTH_RESPONSE'] = authn_response
     user_obj = backend_obj.authenticate(req, user_name)
     if not user_obj:
         raise PermissionDenied(f"SAML2: no-authenticate user {user_name}")
