@@ -229,6 +229,8 @@ def _get_saml_client_config(
 
     if 'NAME_ID_FORMAT' in SAML2_AUTH_CONFIG:
         service_sp_data["name_id_format"] = SAML2_AUTH_CONFIG['NAME_ID_FORMAT']
+    else:
+        service_sp_data["name_id_format"] = consts.DEFAULT_NAME_TO_ID_FORMAT
 
     sp_config = Saml2Config()
     sp_config.load(saml_settings)
