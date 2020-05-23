@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-package_name = 'django3-okta-saml2'
+package_name = 'django3-auth-saml2'
 package_version = open('VERSION').read().strip()
 
 
@@ -14,7 +14,7 @@ with open("README.md", "r") as fh:
 setup(
     name=package_name,
     version=package_version,
-    description='Okta SAML2 auth integration for Django3',
+    description='Django3 auth SAML2 integration',
     long_description=long_description,
     long_description_content_type="text/markdown",
     author='Jeremy Schulman',
