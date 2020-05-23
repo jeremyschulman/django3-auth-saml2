@@ -59,7 +59,8 @@ urlpatterns = [
 The options have been streamlined from the original django-sam2-auth package,
 only the following are supported:
 
-**REQUIRED**
+### Required
+
 **AUTHENTICATION_BACKEND**<br/>
 (NEW) the dotted string name of the backend, for example:<br/>
 "django.contrib.auth.backends.RemoteUserBackend"
@@ -70,35 +71,45 @@ A) **METADATA_AUTO_CONF_URL**<br/>
 The URL to the SSO system where the metadata document can be retrieved, for example:<br/>
 "https://mycorp.oktapreview.com/app/sadjfalkdsflkads/sso/saml/metadata"
 
-B) **METADATA_LOCAL_FILE_PATH** - The filepath to the SSO system
- 
-   
-*OPTIONAL*      
-   * **ENTITY_ID** - same
-   * **ASSERTION_URL** - same
-   * **NAME_ID_FORMAT** - Identifies the format of the User name, see [docs](https://docs.oracle.com/cd/E19316-01/820-3886/ggwbz/index.html) for options.
+B) **METADATA_LOCAL_FILE_PATH**<br/>
+As an alternative to using the URL, you can store the metadata contents to a local file, for example:<br/>
+"/etc/oktapreview-netbox-metadata.xml" 
+
+### Optional
+
+**DEFAULT_NEXT_URL**<br/>
+The next URL used to redirect the User after login is successful.  Defaults to "/".  
+
+**ENTITY_ID**<br/>
+This is generally the URL to your application, for example:<br/>
+"https://okta-devtest.ngrok.io"<br/>
+
+**ASSERTION_URL** - same
+This is generally the URL to your application, for example:<br/>
+"https://okta-devtest.ngrok.io"<br/>
+
+**NAME_ID_FORMAT**<br/>
+Identifies the format of the User name, see [docs](https://docs.oracle.com/cd/E19316-01/820-3886/ggwbz/index.html) for options.
+This value defaults to using email.
 
 By default the User name value will be taken from the SAML response
 `name_id.text` value.  For example, if the NAME_ID_FORMAT is set to use email,
 then the User name value will be the User's email address.
+
+For more information on these terms, refer to [docs](https://support.okta.com/help/s/article/Common-SAML-Terms).
+
+### Example
 
 You should create the `SAM2_AUTH_CONFIG` dictionary in the Django `settings.py` file,
 for example:
 
 ````python
 SAML2_AUTH_CONFIG = {
-    # Django authentication backend, must be a subclass of RemoteUserBackend
-    
-    # Using Netbox default remote backend
+    # Using default remote backend
     'AUTHENTICATION_BACKEND': 'django.contrib.auth.backends.RemoteUserBackend',
 
     # Metadata is required, choose either remote url or local file path
-    'METADATA_LOCAL_FILE_PATH': '/etc/oktapreview-netbox-metadata.xml',
-
-    # Setting in Okta Admin for this App
-
-    # Use email as the User name
-    'NAME_ID_FORMAT': "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+    'METADATA_AUTO_CONF_URL': "https://mycorp.oktapreview.com/app/sadjfalkdsflkads/sso/saml/metadata"
 }
 ````
 
