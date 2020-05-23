@@ -1,3 +1,11 @@
+"""
+This file contains the Django Views to support Single Sign On (SSO)
+with a SAML2 system, for example Okta.
+
+  `login` - is called to redirect the User login to the SSO system for signon
+  `acs` - is called by the SSO system once the User has authenticated
+
+"""
 
 # -----------------------------------------------------------------------------
 # System Imports
@@ -30,7 +38,6 @@ from django.core.exceptions import PermissionDenied
 # -----------------------------------------------------------------------------
 # Private Imports
 # -----------------------------------------------------------------------------
-
 
 from . import consts
 from . config import SAML2_AUTH_CONFIG
@@ -150,6 +157,7 @@ def signin(req: WSGIRequest) -> HttpResponseRedirect:
 #
 # -----------------------------------------------------------------------------
 
+@lru_cache()
 def _default_next_url():
     if 'DEFAULT_NEXT_URL' in SAML2_AUTH_CONFIG:
         return SAML2_AUTH_CONFIG['DEFAULT_NEXT_URL']
@@ -157,7 +165,8 @@ def _default_next_url():
     return consts.DEFAULT_NEXT_URL
 
 
-def get_current_domain(req: WSGIRequest) -> str:
+@lru_cache()
+def _get_current_domain(req: WSGIRequest) -> str:
     if 'ASSERTION_URL' in SAML2_AUTH_CONFIG:
         return SAML2_AUTH_CONFIG['ASSERTION_URL']
 
@@ -167,24 +176,37 @@ def get_current_domain(req: WSGIRequest) -> str:
     )
 
 
-def _get_metadata():
+@lru_cache()
+def _get_saml_client_config(
+    domain: str
+) -> Saml2Config:
+    """
+    Returns a SAML2 config instance that is used when creating a SAML2 client.
+    Since this configuraiton does not change, we cache the value.
+
+    Parameters
+    ----------
+    domain: str
+        The domain name of the Django app server; that is the server running
+        this code.
+    """
+    acs_url = domain + reverse(consts.VIEWNAME_SSO_ACS)
+
     if 'METADATA_LOCAL_FILE_PATH' in SAML2_AUTH_CONFIG:
-        return {
+        metadata = {
             'local': [SAML2_AUTH_CONFIG['METADATA_LOCAL_FILE_PATH']]
         }
 
-    return {
-        'remote': [
-            {
-                "url": SAML2_AUTH_CONFIG['METADATA_AUTO_CONF_URL']
-            }
-        ]
-    }
-
-
-def _get_saml_client_config(domain):
-    acs_url = domain + reverse(consts.VIEWNAME_SSO_ACS)
-    metadata = _get_metadata()
+    elif 'METADATA_AUTO_CONF_URL' in SAML2_AUTH_CONFIG:
+        metadata = {
+            'remote': [
+                {
+                    "url": SAML2_AUTH_CONFIG['METADATA_AUTO_CONF_URL']
+                }
+            ]
+        }
+    else:
+        raise ValueError('SAML2: missing one of ["METADATA_LOCAL_FILE_PATH", "METADATA_AUTO_CONF_URL"]')
 
     service_sp_data = {
         'endpoints': {
@@ -219,5 +241,5 @@ def _get_saml_client_config(domain):
 
 
 def _get_saml_client(req):
-    domain = get_current_domain(req)
+    domain = _get_current_domain(req)
     return Saml2Client(config=_get_saml_client_config(domain))
