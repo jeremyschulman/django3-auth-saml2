@@ -130,16 +130,9 @@ does not exist by defaul; see class property `create_unknown_user`.  In this
 case the `RemoteUserBackend.configure_user()` method is called.  
 
 You can subclass RemoteUserBackend, implemeting your own `authenticate()` and
-`configure_user()` methods to use the `response.META['SAML2_AUTH_RESPONSE']` data. 
-You can to access the SAML2 user identiy attributes:
-
-```python
-saml2_uath_resp = response.META['SAML2_AUTH_RESPONSE']
-user_identity = saml2_auth_resp.get_identity()
-```
-
-The `user_identity` return value is a dictionary of the key-value pairs
-as assigned in the SSO system.
+`configure_user()` methods to use the `response.META['SAML2_AUTH_RESPONSE']`
+data. You can to access the SAML2 user identiy attributes.  See samples in
+[backends.py](django3_auth_saml2/backends.py).
 
 # Using Netbox?
 
