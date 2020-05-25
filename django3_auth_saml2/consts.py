@@ -7,4 +7,3 @@ LABEL_SSO_ACS = "sso_acs"
 LABEL_SSO_LOGIN = "sso_login"
 
 VIEWNAME_SSO_ACS = f"{app_name}:{LABEL_SSO_ACS}"
-# VIEWNAME_SSO_LOGIN = f"{app_name}:{LABEL_SSO_LOGIN}"
