@@ -78,10 +78,10 @@ As an alternative to using the URL, you can store the metadata contents to a loc
 ### Optional
 
 **DEFAULT_NEXT_URL**<br/>
-The next URL used to redirect the User after login is successful.  Defaults to "/".  
+The next URL used to redirect the User after login is successful.  Defaults to `/`.  
 
 **DEFAULT_SSO_ACS_URL**<br/>
-The URL to be used for SSO sign-in purposes.  Defaults to `/sso/acs`.
+The URL to be used for SSO sign-in purposes.  Defaults to `/sso/acs/`.
 
 **ENTITY_ID**<br/>
 This is generally the URL to your application, for example:<br/>

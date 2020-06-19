@@ -6,3 +6,6 @@
    a reverse-loopup technique based on this package-name.  Defaults
    to `/sso/acs`.
    * Added logging to `views.py` file.
+   
+#### v0.1.0 (2020-May-15)
+   * First release, minimum viable working package   
