@@ -27,7 +27,7 @@ setup(
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'License :: OSI Approved :: Apache Software License',
-        'Framework :: Django :: 3',
+        'Framework :: Django :: 3.0',
         'Programming Language :: Python :: 3.6',
     ]
 )
