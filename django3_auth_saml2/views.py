@@ -10,7 +10,7 @@ with a SAML2 system, for example Okta.
 # -----------------------------------------------------------------------------
 # System Imports
 # -----------------------------------------------------------------------------
-
+import logging
 from functools import lru_cache
 
 # -----------------------------------------------------------------------------
@@ -31,7 +31,6 @@ from django.contrib.auth import login, load_backend
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponseRedirect
 from django.utils.http import is_safe_url
-from django.urls import reverse
 from django.core.handlers.wsgi import WSGIRequest
 from django.core.exceptions import PermissionDenied
 
@@ -48,6 +47,8 @@ from . config import SAML2_AUTH_CONFIG
 #
 #
 # #############################################################################
+
+_LOG = logging.getLogger(__name__)
 
 
 # -----------------------------------------------------------------------------
@@ -74,21 +75,27 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
         saml_client = _get_saml_client(req)
         resp = req.POST.get('SAMLResponse', None)
         if not resp:
-            raise PermissionDenied("SAML2: missing response")
+            errmsg = "SAML2: missing response"
+            _LOG.error(errmsg)
+            raise PermissionDenied(errmsg)
 
         # Validate the SSO response and obtain the User identity information.
         # If any part of this process fails, then redirect to a denied page.
 
         authn_response = saml_client.parse_authn_request_response(
-            resp,
-            entity.BINDING_HTTP_POST
+            xmlstr=resp,
+            binding=entity.BINDING_HTTP_POST
         )
 
         if authn_response is None:
-            raise PermissionDenied("SAML2: failed to parse response")
+            errmsg = "SAML2: failed to parse response"
+            _LOG.error(errmsg)
+            raise PermissionDenied(errmsg)
 
     except SAMLError as exc:
-        raise PermissionDenied(f"SAML2 error: {str(exc)}")
+        errmsg = f"SAML2 error: {str(exc)}"
+        _LOG.error(errmsg)
+        raise PermissionDenied(errmsg)
 
     # SSO validation process is completed, so next step is to use the SSO
     # response payload about the User (identity) so that we can either obtain
@@ -106,7 +113,9 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
     req.META['SAML2_AUTH_RESPONSE'] = authn_response
     user_obj = backend_obj.authenticate(req, user_name)
     if not user_obj:
-        raise PermissionDenied(f"SAML2: no-authenticate user {user_name}")
+        errmsg = f"SAML2: no-authenticate user {user_name}"
+        _LOG.error(errmsg)
+        raise PermissionDenied(errmsg)
 
     # Login user and redirect to the "next URL"
 
@@ -130,7 +139,9 @@ def signin(req: WSGIRequest) -> HttpResponseRedirect:
     # Only permit signin requests where the next_url is a safe URL
 
     if not is_safe_url(next_url, None):
-        raise PermissionDenied(f"SAML2: unsafe next URL: {next_url}")
+        errmsg = f"SAML2: unsafe next URL: {next_url}"
+        _LOG.error(errmsg)
+        raise PermissionDenied(errmsg)
 
     # Next we need to obtain the SSO system URL to direct the User's browser to
     # that system so that they can perform the login.  We use the RelayState
@@ -187,7 +198,7 @@ def _get_saml_client_config(
         The domain name of the Django app server; that is the server running
         this code.
     """
-    acs_url = domain + reverse(consts.VIEWNAME_SSO_ACS)
+    acs_url = domain + (SAML2_AUTH_CONFIG.get('SSO_ACS_URL') or consts.DEFAULT_SSO_ACS_URL)
 
     if 'METADATA_LOCAL_FILE_PATH' in SAML2_AUTH_CONFIG:
         metadata = {
@@ -203,7 +214,9 @@ def _get_saml_client_config(
             ]
         }
     else:
-        raise ValueError('SAML2: missing one of ["METADATA_LOCAL_FILE_PATH", "METADATA_AUTO_CONF_URL"]')
+        errmsg = 'SAML2: missing one of ["METADATA_LOCAL_FILE_PATH", "METADATA_AUTO_CONF_URL"]'
+        _LOG.error(errmsg)
+        raise ValueError(errmsg)
 
     service_sp_data = {
         'endpoints': {
@@ -241,4 +254,5 @@ def _get_saml_client_config(
 
 def _get_saml_client(req):
     domain = _get_current_domain(req)
+    _LOG.debug(f"SAML2 client for domain {domain}")
     return Saml2Client(config=_get_saml_client_config(domain))
