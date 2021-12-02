@@ -1,2 +1,2 @@
 django>=3
-pysaml2==6.5.0
+pysaml2>=6.5.0
