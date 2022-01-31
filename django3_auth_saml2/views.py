@@ -102,6 +102,7 @@ def sso_acs(req: WSGIRequest) -> HttpResponseRedirect:
     # an existing Django user record, create one if we should, or reject the
     # user if we should not.
 
+    authn_response.parse_assertion()
     user_name = authn_response.name_id.text
     backend_name = SAML2_AUTH_CONFIG['AUTHENTICATION_BACKEND']
     backend_obj = load_backend(backend_name)
