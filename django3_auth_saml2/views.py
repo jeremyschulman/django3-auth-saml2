@@ -30,7 +30,7 @@ from saml2.config import Config as Saml2Config
 from django.contrib.auth import login, load_backend
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponseRedirect
-from django.utils.http import is_safe_url
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.core.handlers.wsgi import WSGIRequest
 from django.core.exceptions import PermissionDenied
 
@@ -139,7 +139,7 @@ def signin(req: WSGIRequest) -> HttpResponseRedirect:
 
     # Only permit signin requests where the next_url is a safe URL
 
-    if not is_safe_url(next_url, None):
+    if not url_has_allowed_host_and_scheme(next_url, None):
         errmsg = f"SAML2: unsafe next URL: {next_url}"
         _LOG.error(errmsg)
         raise PermissionDenied(errmsg)
