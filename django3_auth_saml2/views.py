@@ -237,6 +237,10 @@ def _get_saml_client_config(
         'metadata': metadata,
         'service': {'sp': service_sp_data},
     }
+    
+    if 'SIGN_KEYS' in SAML2_AUTH_CONFIG:
+        service_sp_data["authn_requests_signed"] = True
+        saml_settings["cert_file"], saml_settings["key_file"] = SAML2_AUTH_CONFIG['SIGN_KEYS']
 
     if 'ENTITY_ID' in SAML2_AUTH_CONFIG:
         saml_settings['entityid'] = SAML2_AUTH_CONFIG['ENTITY_ID']
