@@ -149,10 +149,11 @@ def signin(req: WSGIRequest) -> HttpResponseRedirect:
     # URL parameter to pass the 'next-url' value back to the sso handler.
 
     saml_client = _get_saml_client(req)
-    req_id, info = saml_client.prepare_for_authenticate()
+    sign = bool(saml_client.config.getattr("authn_requests_signed", "sp"))
+    req_id, info = saml_client.prepare_for_authenticate(
+        sign=sign, relay_state=next_url)
 
     redirect_url = dict(info['headers'])['Location']
-    redirect_url += f"&RelayState={next_url}"
 
     # This causes the web client to go to the SSO SAML system to force the use
     # to use that system to authenticate.
