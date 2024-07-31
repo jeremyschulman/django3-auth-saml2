@@ -243,6 +243,12 @@ def _get_saml_client_config(
         service_sp_data["authn_requests_signed"] = True
         saml_settings["cert_file"], saml_settings["key_file"] = SAML2_AUTH_CONFIG['SIGN_KEYS']
 
+    if 'SIGNING_ALGORITHM' in SAML2_AUTH_CONFIG:
+        saml_settings['signing_algorithm'] = SAML2_AUTH_CONFIG['SIGNING_ALGORITHM']
+
+    if 'DIGEST_ALGORITHM' in SAML2_AUTH_CONFIG:
+        saml_settings['digest_algorithm'] = SAML2_AUTH_CONFIG['DIGEST_ALGORITHM']
+
     if 'ENTITY_ID' in SAML2_AUTH_CONFIG:
         saml_settings['entityid'] = SAML2_AUTH_CONFIG['ENTITY_ID']
 
